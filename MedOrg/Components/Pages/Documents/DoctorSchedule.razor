@@ -1,0 +1,106 @@
+﻿@page "/documents/schedule"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject DocumentService DocumentService
+
+<h3>Расписание работы врачей</h3>
+<p class="text-muted">Расписание врачей поликлиники</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-6">
+            <label class="form-label">ID Поликлиники:</label>
+            <input type="number" class="form-control" @bind="clinicId" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadSchedule">Сформировать расписание</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-success">
+            <h4>✓ Расписание сформировано</h4>
+            <p>Врачей в расписании: <strong>@result.TotalCount</strong></p>
+        </div>
+
+        <div class="schedule-container">
+            @foreach (var doctor in result.Data)
+            {
+                <div class="schedule-card">
+                    <div class="schedule-header">
+                        <h5>@doctor.DoctorName</h5>
+                        <p class="text-muted">@doctor.Specialization | Кабинет №@doctor.OfficeNumber</p>
+                    </div>
+                    <div class="schedule-body">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>День недели</th>
+                                    <th>Время работы</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in doctor.Schedule)
+                                {
+                                    <tr>
+                                        <td><strong>@GetDayName(entry.DayOfWeek)</strong></td>
+                                        <td>@entry.StartTime.ToString(@"hh\:mm") - @entry.EndTime.ToString(@"hh\:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int clinicId = 1;
+    private bool isLoading = false;
+    private QueryResult<List<DoctorScheduleDto>>? result;
+
+    private async Task LoadSchedule()
+    {
+        if (clinicId == 0) return;
+
+        isLoading = true;
+        result = await DocumentService.GenerateClinicScheduleAsync(clinicId);
+        isLoading = false;
+    }
+
+    private string GetDayName(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "Понедельник",
+            DayOfWeek.Tuesday => "Вторник",
+            DayOfWeek.Wednesday => "Среда",
+            DayOfWeek.Thursday => "Четверг",
+            DayOfWeek.Friday => "Пятница",
+            DayOfWeek.Saturday => "Суббота",
+            DayOfWeek.Sunday => "Воскресенье",
+            _ => day.ToString()
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSchedule();
+    }
+}

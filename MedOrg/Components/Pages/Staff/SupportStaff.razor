@@ -1,0 +1,88 @@
+﻿@page "/staff/support"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Обслуживающий персонал</h3>
+<p class="text-muted">Запрос 2: Перечень обслуживающего персонала по должности</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-4">
+            <label class="form-label">Должность:</label>
+            <select class="form-select" @bind="position">
+                <option value="Медсестра">Медсестра</option>
+                <option value="Санитар">Санитар</option>
+                <option value="Уборщица">Уборщица</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Тип учреждения:</label>
+            <select class="form-select" @bind="institutionType">
+                <option value="">Все</option>
+                <option value="Hospital">Больницы</option>
+                <option value="Clinic">Поликлиники</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Найти</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Найдено: <strong>@result.TotalCount</strong></div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Должность</th>
+                    <th>Стаж (лет)</th>
+                    <th>Учреждение</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var staff in result.Data)
+                {
+                    <tr>
+                        <td>@staff.FullName</td>
+                        <td>@staff.Position</td>
+                        <td>@staff.YearsOfExperience</td>
+                        <td>@staff.InstitutionName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private string position = "Медсестра";
+    private string institutionType = "";
+    private bool isLoading = false;
+    private QueryResult<List<SupportStaffDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetSupportStaffByPositionAsync(
+            position,
+            institutionType: string.IsNullOrEmpty(institutionType) ? null : institutionType
+        );
+        isLoading = false;
+    }
+}

@@ -1,0 +1,116 @@
+﻿@page "/doctors/by-degree"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Models.Entities
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Врачи по степени и званию</h3>
+<p class="text-muted">Запрос 5: Получить врачей со степенью и/или званием</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">Специализация:</label>
+            <input type="text" class="form-control" @bind="specialization" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Степень:</label>
+            <select class="form-select" @bind="degreeStr">
+                <option value="">Любая</option>
+                <option value="Candidate">Кандидат</option>
+                <option value="Doctor">Доктор</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Звание:</label>
+            <select class="form-select" @bind="titleStr">
+                <option value="">Любое</option>
+                <option value="Docent">Доцент</option>
+                <option value="Professor">Профессор</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Тип учреждения:</label>
+            <select class="form-select" @bind="institutionType">
+                <option value="">Все</option>
+                <option value="Hospital">Больницы</option>
+                <option value="Clinic">Поликлиники</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Найти</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Найдено: <strong>@result.TotalCount</strong></div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Специализация</th>
+                    <th>Степень</th>
+                    <th>Звание</th>
+                    <th>Стаж</th>
+                    <th>Учреждение</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var doctor in result.Data)
+                {
+                    <tr>
+                        <td>@doctor.FullName</td>
+                        <td>@doctor.Specialization</td>
+                        <td><strong>@(doctor.Degree ?? "-")</strong></td>
+                        <td><strong>@(doctor.Title ?? "-")</strong></td>
+                        <td>@doctor.YearsOfExperience</td>
+                        <td>@doctor.InstitutionName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private string specialization = "";
+    private string degreeStr = "";
+    private string titleStr = "";
+    private string institutionType = "";
+    private bool isLoading = false;
+    private QueryResult<List<DoctorDto>>? result;
+
+    private async Task LoadData()
+    {
+        if (string.IsNullOrWhiteSpace(specialization)) return;
+
+        AcademicDegree? degree = null;
+        if (!string.IsNullOrEmpty(degreeStr))
+            degree = Enum.Parse<AcademicDegree>(degreeStr);
+
+        AcademicTitle? title = null;
+        if (!string.IsNullOrEmpty(titleStr))
+            title = Enum.Parse<AcademicTitle>(titleStr);
+
+        isLoading = true;
+        result = await QueryService.GetDoctorsByDegreeAndTitleAsync(
+            specialization, degree, title,
+            institutionType: string.IsNullOrEmpty(institutionType) ? null : institutionType
+        );
+        isLoading = false;
+    }
+}

@@ -1,0 +1,109 @@
+﻿@page "/documents/sick-leave"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject DocumentService DocumentService
+
+<h3>Выдача больничного листа</h3>
+<p class="text-muted">Выдать пациенту больничный лист</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">ID Пациента:</label>
+            <input type="number" class="form-control" @bind="patientId" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">ID Врача:</label>
+            <input type="number" class="form-control" @bind="doctorId" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Дата начала:</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Дата окончания:</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-9">
+            <label class="form-label">Диагноз:</label>
+            <input type="text" class="form-control" @bind="diagnosis" placeholder="Введите диагноз" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-success w-100" @onclick="Issuesickleave">Выдать больничный</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Оформление...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-success">
+            <h4>✓ Больничный лист выдан успешно</h4>
+        </div>
+
+        <div class="document-card">
+            <div class="document-header">
+                <h4>БОЛЬНИЧНЫЙ ЛИСТ</h4>
+                <p>№ @result.Data.DocumentNumber</p>
+            </div>
+            <div class="document-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Пациент:</strong> @result.Data.PatientFullName</p>
+                        <p><strong>Диагноз:</strong> @result.Data.Diagnosis</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Лечащий врач:</strong> @result.Data.DoctorFullName</p>
+                        <p><strong>Дата выдачи:</strong> @result.Data.IssueDate.ToShortDateString()</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <p><strong>Период нетрудоспособности:</strong></p>
+                        <p>С @result.Data.StartDate.ToShortDateString() по @result.Data.EndDate.ToShortDateString()</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">@result.Message</div>
+    }
+}
+
+@code {
+    private int patientId;
+    private int doctorId;
+    private DateTime startDate = DateTime.UtcNow;
+    private DateTime endDate = DateTime.UtcNow.AddDays(7);
+    private string diagnosis = "";
+    private bool isLoading = false;
+    private QueryResult<SickLeaveDto>? result;
+
+    private async Task Issuesickleave()
+    {
+        if (patientId == 0 || doctorId == 0 || string.IsNullOrWhiteSpace(diagnosis))
+        {
+            result = new QueryResult<SickLeaveDto>
+            {
+                Success = false,
+                Message = "Заполните все поля"
+            };
+            return;
+        }
+
+        isLoading = true;
+        result = await DocumentService.IssueSickLeaveAsync(patientId, doctorId, startDate, endDate, diagnosis);
+        isLoading = false;
+    }
+}

@@ -1,0 +1,85 @@
+﻿@page "/statistics/workload"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Загрузка врачей</h3>
+<p class="text-muted">Запрос 12: Число пациентов, у которых врач является лечащим</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-4">
+            <label class="form-label">ID Врача:</label>
+            <input type="number" class="form-control" @bind="doctorId" placeholder="Все врачи" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">ID Больницы:</label>
+            <input type="number" class="form-control" @bind="hospitalId" placeholder="Все больницы" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Загрузить</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">
+            Врачей: <strong>@result.TotalCount</strong> |
+            Всего пациентов: <strong>@result.Data.Sum(x => x.CurrentPatients)</strong>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Врач</th>
+                    <th>Специализация</th>
+                    <th>Текущих пациентов</th>
+                    <th>Загрузка</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stat in result.Data.OrderByDescending(x => x.CurrentPatients))
+                {
+                    var loadClass = stat.CurrentPatients > 10 ? "bg-danger" : stat.CurrentPatients > 5 ? "bg-warning" : "bg-success";
+                    <tr>
+                        <td>@stat.DoctorName</td>
+                        <td>@stat.Specialization</td>
+                        <td><span class="badge @loadClass">@stat.CurrentPatients</span></td>
+                        <td>
+                            <div class="progress">
+                                <div class="progress-bar @loadClass" style="width: @(Math.Min(stat.CurrentPatients * 10, 100))%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int? doctorId;
+    private int? hospitalId;
+    private bool isLoading = false;
+    private QueryResult<List<DoctorWorkloadDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetDoctorWorkloadAsync(doctorId, hospitalId, null);
+        isLoading = false;
+    }
+}

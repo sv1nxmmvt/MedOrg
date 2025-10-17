@@ -1,0 +1,108 @@
+﻿@page "/statistics/wards"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Статистика палат и коек</h3>
+<p class="text-muted">Запрос 9: Число палат, коек и свободных мест по отделениям</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-6">
+            <label class="form-label">ID Больницы:</label>
+            <input type="number" class="form-control" @bind="hospitalId" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Загрузить статистику</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Отделений: <strong>@result.TotalCount</strong></div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <h5>Всего палат</h5>
+                    <h2>@result.Data.Sum(x => x.TotalWards)</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <h5>Всего коек</h5>
+                    <h2>@result.Data.Sum(x => x.TotalBeds)</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-success">
+                    <h5>Свободных коек</h5>
+                    <h2>@result.Data.Sum(x => x.FreeBeds)</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-warning">
+                    <h5>Занято коек</h5>
+                    <h2>@result.Data.Sum(x => x.OccupiedBeds)</h2>
+                </div>
+            </div>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Отделение</th>
+                    <th>Палат</th>
+                    <th>Всего коек</th>
+                    <th>Занято</th>
+                    <th>Свободно</th>
+                    <th>Полностью свободных палат</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stat in result.Data)
+                {
+                    <tr>
+                        <td>@stat.DepartmentName</td>
+                        <td>@stat.TotalWards</td>
+                        <td>@stat.TotalBeds</td>
+                        <td><span class="badge bg-warning">@stat.OccupiedBeds</span></td>
+                        <td><span class="badge bg-success">@stat.FreeBeds</span></td>
+                        <td>@stat.FullyFreeWards</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int hospitalId = 1;
+    private bool isLoading = false;
+    private QueryResult<List<WardStatisticsDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetWardStatisticsAsync(hospitalId);
+        isLoading = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+}

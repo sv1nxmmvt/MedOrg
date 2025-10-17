@@ -1,0 +1,108 @@
+﻿@page "/documents/certificate"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject DocumentService DocumentService
+
+<h3>Выдача справки</h3>
+<p class="text-muted">Справка о посещениях поликлиники в текущем году</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-5">
+            <label class="form-label">ID Пациента:</label>
+            <input type="number" class="form-control" @bind="patientId" />
+        </div>
+        <div class="col-md-5">
+            <label class="form-label">ID Врача:</label>
+            <input type="number" class="form-control" @bind="doctorId" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-success w-100" @onclick="Issuecertificate">Выдать справку</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Оформление...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-success">
+            <h4>✓ Справка выдана успешно</h4>
+        </div>
+
+        <div class="document-card">
+            <div class="document-header">
+                <h4>СПРАВКА</h4>
+                <p>№ @result.Data.DocumentNumber</p>
+                <p>Дата выдачи: @result.Data.IssueDate.ToShortDateString()</p>
+            </div>
+            <div class="document-body">
+                <p><strong>Пациент:</strong> @result.Data.PatientFullName</p>
+                <p><strong>Лечащий врач:</strong> @result.Data.DoctorFullName</p>
+
+                <h5 class="mt-4">Посещения в текущем году:</h5>
+
+                @if (result.Data.Visits.Any())
+                {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Причина обращения</th>
+                                <th>Диагноз</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var visit in result.Data.Visits)
+                            {
+                                <tr>
+                                    <td>@visit.VisitDate.ToShortDateString()</td>
+                                    <td>@visit.Reason</td>
+                                    <td>@visit.Diagnosis</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted">Посещений в текущем году не зарегистрировано</p>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">@result.Message</div>
+    }
+}
+
+@code {
+    private int patientId;
+    private int doctorId;
+    private bool isLoading = false;
+    private QueryResult<MedicalCertificateDto>? result;
+
+    private async Task Issuecertificate()
+    {
+        if (patientId == 0 || doctorId == 0)
+        {
+            result = new QueryResult<MedicalCertificateDto>
+            {
+                Success = false,
+                Message = "Заполните все поля"
+            };
+            return;
+        }
+
+        isLoading = true;
+        result = await DocumentService.IssueMedicalCertificateAsync(patientId, doctorId);
+        isLoading = false;
+    }
+}

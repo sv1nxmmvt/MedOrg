@@ -1,0 +1,87 @@
+﻿@page "/statistics/productivity"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Выработка врачей</h3>
+<p class="text-muted">Запрос 11: Среднее число принятых пациентов в день</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">ID Врача:</label>
+            <input type="number" class="form-control" @bind="doctorId" placeholder="Все врачи" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">ID Поликлиники:</label>
+            <input type="number" class="form-control" @bind="clinicId" placeholder="Все" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Дата с:</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Дата по:</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Загрузить</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Врачей: <strong>@result.TotalCount</strong></div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Врач</th>
+                    <th>Специализация</th>
+                    <th>Всего пациентов</th>
+                    <th>Среднее в день</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stat in result.Data.OrderByDescending(x => x.AveragePatientsPerDay))
+                {
+                    <tr>
+                        <td>@stat.DoctorName</td>
+                        <td>@stat.Specialization</td>
+                        <td>@stat.TotalPatients</td>
+                        <td><strong>@stat.AveragePatientsPerDay.ToString("F2")</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int? doctorId;
+    private int? clinicId;
+    private DateTime? startDate = DateTime.UtcNow.AddMonths(-1);
+    private DateTime? endDate = DateTime.UtcNow;
+    private bool isLoading = false;
+    private QueryResult<List<DoctorProductivityDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetDoctorProductivityAsync(doctorId, clinicId, null, startDate, endDate);
+        isLoading = false;
+    }
+}

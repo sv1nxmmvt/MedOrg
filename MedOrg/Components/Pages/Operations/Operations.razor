@@ -1,0 +1,93 @@
+﻿@page "/operations"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Операции</h3>
+<p class="text-muted">Запрос 13: Пациенты, перенесшие операции</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">ID Больницы:</label>
+            <input type="number" class="form-control" @bind="hospitalId" placeholder="Все" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">ID Врача:</label>
+            <input type="number" class="form-control" @bind="doctorId" placeholder="Все" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Дата с:</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Дата по:</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Найти</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Операций: <strong>@result.TotalCount</strong></div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Пациент</th>
+                    <th>Врач</th>
+                    <th>Тип операции</th>
+                    <th>Результат</th>
+                    <th>Учреждение</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var operation in result.Data)
+                {
+                    var resultClass = operation.Result == "Success" ? "bg-success" :
+                    operation.Result == "Fatal" ? "bg-danger" : "bg-warning";
+                    <tr>
+                        <td>@operation.OperationDate.ToShortDateString()</td>
+                        <td>@operation.PatientName</td>
+                        <td>@operation.DoctorName</td>
+                        <td>@operation.OperationType</td>
+                        <td><span class="badge @resultClass">@operation.Result</span></td>
+                        <td>@operation.InstitutionName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int? hospitalId;
+    private int? doctorId;
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private bool isLoading = false;
+    private QueryResult<List<OperationDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetOperationsAsync(hospitalId, null, doctorId, startDate, endDate);
+        isLoading = false;
+    }
+}

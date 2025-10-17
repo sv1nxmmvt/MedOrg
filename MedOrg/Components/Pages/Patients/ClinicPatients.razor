@@ -1,0 +1,77 @@
+﻿@page "/patients/clinic"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Пациенты поликлиники</h3>
+<p class="text-muted">Запрос 8: Пациенты, наблюдающиеся у врача указанного профиля</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-5">
+            <label class="form-label">Специализация врача:</label>
+            <input type="text" class="form-control" @bind="specialization" placeholder="Например: Терапевт" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">ID Поликлиники:</label>
+            <input type="number" class="form-control" @bind="clinicId" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Найти</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Найдено: <strong>@result.TotalCount</strong></div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ФИО пациента</th>
+                    <th>Врач</th>
+                    <th>Специализация</th>
+                    <th>Дата начала наблюдения</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var patient in result.Data)
+                {
+                    <tr>
+                        <td>@patient.FullName</td>
+                        <td>@patient.DoctorName</td>
+                        <td>@patient.DoctorSpecialization</td>
+                        <td>@patient.StartDate.ToShortDateString()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private string specialization = "";
+    private int clinicId = 1;
+    private bool isLoading = false;
+    private QueryResult<List<ClinicPatientDto>>? result;
+
+    private async Task LoadData()
+    {
+        if (string.IsNullOrWhiteSpace(specialization)) return;
+        isLoading = true;
+        result = await QueryService.GetClinicPatientsByDoctorAsync(specialization, clinicId);
+        isLoading = false;
+    }
+}

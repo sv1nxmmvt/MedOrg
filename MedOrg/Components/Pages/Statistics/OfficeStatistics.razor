@@ -1,0 +1,86 @@
+﻿@page "/statistics/offices"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Статистика кабинетов</h3>
+<p class="text-muted">Запрос 10: Число кабинетов и посещений за период</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-4">
+            <label class="form-label">ID Поликлиники:</label>
+            <input type="number" class="form-control" @bind="clinicId" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Дата с:</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Дата по:</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Загрузить</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">
+            Кабинетов: <strong>@result.TotalCount</strong> |
+            Всего посещений: <strong>@result.Data.Sum(x => x.VisitsCount)</strong>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Номер кабинета</th>
+                    <th>Количество посещений</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stat in result.Data.OrderByDescending(x => x.VisitsCount))
+                {
+                    <tr>
+                        <td><strong>Кабинет @stat.OfficeNumber</strong></td>
+                        <td><span class="badge bg-primary">@stat.VisitsCount</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int clinicId = 1;
+    private DateTime startDate = DateTime.UtcNow.AddMonths(-1);
+    private DateTime endDate = DateTime.UtcNow;
+    private bool isLoading = false;
+    private QueryResult<List<OfficeStatisticsDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetOfficeStatisticsAsync(clinicId, startDate, endDate);
+        isLoading = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+}

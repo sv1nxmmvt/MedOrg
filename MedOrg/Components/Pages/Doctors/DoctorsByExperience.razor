@@ -1,0 +1,89 @@
+﻿@page "/doctors/by-experience"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Врачи по стажу</h3>
+<p class="text-muted">Запрос 4: Получить врачей, стаж которых не менее заданного</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">Специализация:</label>
+            <input type="text" class="form-control" @bind="specialization" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Минимум лет стажа:</label>
+            <input type="number" class="form-control" @bind="minYears" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Тип учреждения:</label>
+            <select class="form-select" @bind="institutionType">
+                <option value="">Все</option>
+                <option value="Hospital">Больницы</option>
+                <option value="Clinic">Поликлиники</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Найти</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Найдено: <strong>@result.TotalCount</strong></div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Специализация</th>
+                    <th>Стаж (лет)</th>
+                    <th>Учреждение</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var doctor in result.Data)
+                {
+                    <tr>
+                        <td>@doctor.FullName</td>
+                        <td>@doctor.Specialization</td>
+                        <td><strong>@doctor.YearsOfExperience</strong></td>
+                        <td>@doctor.InstitutionName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private string specialization = "";
+    private int minYears = 10;
+    private string institutionType = "";
+    private bool isLoading = false;
+    private QueryResult<List<DoctorDto>>? result;
+
+    private async Task LoadData()
+    {
+        if (string.IsNullOrWhiteSpace(specialization)) return;
+        isLoading = true;
+        result = await QueryService.GetDoctorsByMinExperienceAsync(
+            specialization, minYears,
+            institutionType: string.IsNullOrEmpty(institutionType) ? null : institutionType
+        );
+        isLoading = false;
+    }
+}

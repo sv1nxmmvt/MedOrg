@@ -1,0 +1,89 @@
+﻿@page "/patients/hospitalized"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Госпитализированные пациенты</h3>
+<p class="text-muted">Запрос 6: Пациенты больницы/отделения/палаты</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">ID Больницы:</label>
+            <input type="number" class="form-control" @bind="hospitalId" placeholder="Оставьте пустым для всех" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">ID Отделения:</label>
+            <input type="number" class="form-control" @bind="departmentId" placeholder="Опционально" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">ID Палаты:</label>
+            <input type="number" class="form-control" @bind="wardId" placeholder="Опционально" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Найти</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Найдено: <strong>@result.TotalCount</strong></div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Дата поступления</th>
+                    <th>Диагноз</th>
+                    <th>Состояние</th>
+                    <th>Температура</th>
+                    <th>Палата</th>
+                    <th>Отделение</th>
+                    <th>Лечащий врач</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var patient in result.Data)
+                {
+                    <tr>
+                        <td>@patient.FullName</td>
+                        <td>@patient.AdmissionDate.ToShortDateString()</td>
+                        <td>@patient.Diagnosis</td>
+                        <td>@patient.Condition</td>
+                        <td>@(patient.Temperature?.ToString("F1") ?? "-")</td>
+                        <td>@patient.WardNumber</td>
+                        <td>@patient.DepartmentName</td>
+                        <td>@patient.AttendingDoctorName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int? hospitalId;
+    private int? departmentId;
+    private int? wardId;
+    private bool isLoading = false;
+    private QueryResult<List<HospitalizedPatientDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetHospitalizedPatientsAsync(hospitalId, departmentId, wardId);
+        isLoading = false;
+    }
+}

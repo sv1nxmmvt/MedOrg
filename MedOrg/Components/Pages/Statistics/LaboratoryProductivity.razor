@@ -1,0 +1,82 @@
+﻿@page "/statistics/laboratory"
+@rendermode InteractiveServer
+@using MedOrg.Models.DTOs
+@using MedOrg.Services
+@inject QueryService QueryService
+
+<h3>Выработка лабораторий</h3>
+<p class="text-muted">Запрос 14: Среднее число обследований в день</p>
+
+<div class="filter-panel">
+    <div class="row">
+        <div class="col-md-4">
+            <label class="form-label">ID Учреждения:</label>
+            <input type="number" class="form-control" @bind="institutionId" placeholder="Все учреждения" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Дата с:</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Дата по:</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" @onclick="LoadData">Загрузить</button>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (result != null)
+{
+    @if (result.Success && result.Data != null)
+    {
+        <div class="alert alert-info">Лабораторий: <strong>@result.TotalCount</strong></div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Лаборатория</th>
+                    <th>Учреждение</th>
+                    <th>Всего обследований</th>
+                    <th>Среднее в день</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stat in result.Data.OrderByDescending(x => x.AverageExaminationsPerDay))
+                {
+                    <tr>
+                        <td>@stat.LaboratoryName</td>
+                        <td>@stat.InstitutionName</td>
+                        <td>@stat.TotalExaminations</td>
+                        <td><strong>@stat.AverageExaminationsPerDay.ToString("F2")</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">@result.Message</div>
+    }
+}
+
+@code {
+    private int? institutionId;
+    private DateTime? startDate = DateTime.UtcNow.AddMonths(-1);
+    private DateTime? endDate = DateTime.UtcNow;
+    private bool isLoading = false;
+    private QueryResult<List<LaboratoryProductivityDto>>? result;
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        result = await QueryService.GetLaboratoryProductivityAsync(institutionId, startDate, endDate);
+        isLoading = false;
+    }
+}
