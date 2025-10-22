@@ -1,0 +1,196 @@
+﻿@page "/manage/hospitals"
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@using MedOrg.Models.Entities
+@using MedOrg.Services
+@inject HospitalService HospitalService
+
+<h3>Управление больницами</h3>
+
+<div class="mb-3">
+    <button class="btn btn-success" @onclick="ShowAddModal">
+        <i class="bi bi-plus-circle"></i> Добавить больницу
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (hospitals != null && hospitals.Data != null)
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Адрес</th>
+                    <th>Корпусов</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var hospital in hospitals.Data)
+                {
+                    <tr>
+                        <td>@hospital.Id</td>
+                        <td>@hospital.Name</td>
+                        <td>@hospital.Address</td>
+                        <td>@hospital.Buildings.Count</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" @onclick="() => ShowEditModal(hospital.Id)">
+                                Изменить
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirm(hospital.Id)">
+                                Удалить
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (showFormModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEdit ? "Редактирование больницы" : "Добавление больницы")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseFormModal"></button>
+                </div>
+                <div class="modal-body">
+                    <HospitalForm Model="@currentHospital" IsEdit="@isEdit"
+                                  OnSubmit="@HandleFormSubmit" OnCancel="@CloseFormModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ConfirmDeleteModal IsVisible="@showDeleteConfirm"
+                    Message="@($"Вы уверены, что хотите удалить больницу?")"
+                    OnConfirm="@HandleDelete"
+                    OnClose="@(() => showDeleteConfirm = false)" />
+
+<MessageModal IsVisible="@showMessageModal"
+              Title="@messageTitle"
+              Message="@messageText"
+              Type="@messageType"
+              OnClose="@CloseMessageModal" />
+
+@code {
+    private QueryResult<List<Hospital>>? hospitals;
+    private Hospital currentHospital = new();
+    private int selectedHospitalId;
+    private bool isLoading = false;
+    private bool showFormModal = false;
+    private bool showDeleteConfirm = false;
+    private bool showMessageModal = false;
+    private bool isEdit = false;
+    private string messageTitle = "";
+    private string messageText = "";
+    private MessageModal.MessageType messageType = MessageModal.MessageType.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHospitals();
+    }
+
+    private async Task LoadHospitals()
+    {
+        isLoading = true;
+        hospitals = await HospitalService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void ShowAddModal()
+    {
+        currentHospital = new Hospital();
+        isEdit = false;
+        showFormModal = true;
+    }
+
+    private async Task ShowEditModal(int id)
+    {
+        var result = await HospitalService.GetByIdAsync(id);
+        if (result.Success && result.Data != null)
+        {
+            currentHospital = result.Data;
+            isEdit = true;
+            showFormModal = true;
+        }
+    }
+
+    private void ShowDeleteConfirm(int id)
+    {
+        selectedHospitalId = id;
+        showDeleteConfirm = true;
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        QueryResult<Hospital> result;
+
+        if (isEdit)
+        {
+            result = await HospitalService.UpdateAsync(currentHospital);
+        }
+        else
+        {
+            result = await HospitalService.CreateAsync(currentHospital);
+        }
+
+        if (result.Success)
+        {
+            messageTitle = "Успех";
+            messageText = result.Message ?? "Операция выполнена успешно";
+            messageType = MessageModal.MessageType.Success;
+            showFormModal = false;
+            await LoadHospitals();
+        }
+        else
+        {
+            messageTitle = "Ошибка";
+            messageText = result.Message ?? "Произошла ошибка";
+            messageType = MessageModal.MessageType.Error;
+        }
+
+        showMessageModal = true;
+    }
+
+    private async Task HandleDelete()
+    {
+        var result = await HospitalService.DeleteAsync(selectedHospitalId);
+        showDeleteConfirm = false;
+
+        if (result.Success)
+        {
+            messageTitle = "Успех";
+            messageText = result.Message ?? "Больница успешно удалена";
+            messageType = MessageModal.MessageType.Success;
+            await LoadHospitals();
+        }
+        else
+        {
+            messageTitle = "Ошибка";
+            messageText = result.Message ?? "Произошла ошибка";
+            messageType = MessageModal.MessageType.Error;
+        }
+
+        showMessageModal = true;
+    }
+
+    private void CloseFormModal()
+    {
+        showFormModal = false;
+    }
+
+    private void CloseMessageModal()
+    {
+        showMessageModal = false;
+    }
+}

@@ -1,0 +1,174 @@
+﻿@using MedOrg.Models.Entities
+@using Microsoft.EntityFrameworkCore
+@using MedOrg.Data
+@inject MedOrgDbContext DbContext
+
+<EditForm Model="@Model" OnValidSubmit="@HandleSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Фамилия *</label>
+            <InputText class="form-control" @bind-Value="Model.LastName" />
+            <ValidationMessage For="@(() => Model.LastName)" />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Имя *</label>
+            <InputText class="form-control" @bind-Value="Model.FirstName" />
+            <ValidationMessage For="@(() => Model.FirstName)" />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Отчество</label>
+            <InputText class="form-control" @bind-Value="Model.MiddleName" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Дата рождения *</label>
+            <InputDate class="form-control" @bind-Value="Model.BirthDate" />
+            <ValidationMessage For="@(() => Model.BirthDate)" />
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Дата приёма на работу *</label>
+            <InputDate class="form-control" @bind-Value="Model.HireDate" />
+            <ValidationMessage For="@(() => Model.HireDate)" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Телефон</label>
+        <InputText class="form-control" @bind-Value="Model.Phone" placeholder="+7 (XXX) XXX-XX-XX" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Специализация *</label>
+        <InputText class="form-control" @bind-Value="Model.Specialization" />
+        <ValidationMessage For="@(() => Model.Specialization)" />
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Базовая зарплата *</label>
+            <InputNumber class="form-control" @bind-Value="Model.BaseSalary" />
+            <ValidationMessage For="@(() => Model.BaseSalary)" />
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Основное учреждение</label>
+            <InputSelect class="form-select" @bind-Value="Model.InstitutionId">
+                <option value="0">Не выбрано</option>
+                @foreach (var institution in Institutions)
+                {
+                    <option value="@institution.Id">@institution.Name</option>
+                }
+            </InputSelect>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Учёная степень</label>
+            <InputSelect class="form-select" @bind-Value="DegreeString">
+                <option value="">Нет</option>
+                <option value="Candidate">Кандидат</option>
+                <option value="Doctor">Доктор</option>
+            </InputSelect>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Учёное звание</label>
+            <InputSelect class="form-select" @bind-Value="TitleString">
+                <option value="">Нет</option>
+                <option value="Docent">Доцент</option>
+                <option value="Professor">Профессор</option>
+            </InputSelect>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Дополнительное учреждение (совместительство)</label>
+        <InputSelect class="form-select" @bind-Value="SecondaryInstitutionIdNullable">
+            <option value="">Нет</option>
+            @foreach (var institution in Institutions)
+            {
+                <option value="@institution.Id">@institution.Name</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Всего операций</label>
+            <InputNumber class="form-control" @bind-Value="Model.TotalOperations" />
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Летальных исходов</label>
+            <InputNumber class="form-control" @bind-Value="Model.FatalOperations" />
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Коэфф. за вредность</label>
+            <InputNumber class="form-control" @bind-Value="Model.HazardPayCoefficient" step="0.1" />
+        </div>
+    </div>
+
+    <div class="mb-3 form-check">
+        <InputCheckbox class="form-check-input" @bind-Value="ExtendedVacationBool" id="extendedVacation" />
+        <label class="form-check-label" for="extendedVacation">
+            Удлинённый отпуск
+        </label>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@(IsEdit ? "Сохранить" : "Добавить")</button>
+        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Отмена</button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public Doctor Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private List<MedicalInstitution> Institutions { get; set; } = new();
+
+    private string DegreeString
+    {
+        get => Model.Degree?.ToString() ?? "";
+        set => Model.Degree = string.IsNullOrEmpty(value) ? null : Enum.Parse<AcademicDegree>(value);
+    }
+
+    private string TitleString
+    {
+        get => Model.Title?.ToString() ?? "";
+        set => Model.Title = string.IsNullOrEmpty(value) ? null : Enum.Parse<AcademicTitle>(value);
+    }
+
+    private string SecondaryInstitutionIdNullable
+    {
+        get => Model.SecondaryInstitutionId?.ToString() ?? "";
+        set => Model.SecondaryInstitutionId = string.IsNullOrEmpty(value) ? null : int.Parse(value);
+    }
+
+    private bool ExtendedVacationBool
+    {
+        get => Model.ExtraVacationDays.HasValue && Model.ExtraVacationDays > 0;
+        set => Model.ExtraVacationDays = value ? 14 : 0;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hospitals = await DbContext.Hospitals.Cast<MedicalInstitution>().ToListAsync();
+        var clinics = await DbContext.Clinics.Cast<MedicalInstitution>().ToListAsync();
+        Institutions = hospitals.Concat(clinics).ToList();
+    }
+
+    private Task HandleSubmit()
+    {
+        return OnSubmit.InvokeAsync();
+    }
+}

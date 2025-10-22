@@ -1,16 +1,66 @@
-﻿<Router AppAssembly="@typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Страница не найдена</PageTitle>
-        <LayoutView Layout="@typeof(Layout.MainLayout)">
-            <div class="alert alert-warning">
-                <h4>404 - Страница не найдена</h4>
-                <p>К сожалению, запрашиваемая страница не существует.</p>
-                <a href="/" class="btn btn-primary">Вернуться на главную</a>
-            </div>
-        </LayoutView>
-    </NotFound>
-</Router>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Components.Layout.MainLayout)">
+                <NotAuthorized Context="authContext">
+                    @if (authContext.User.Identity?.IsAuthenticated != true)
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <div class="container mt-5">
+                            <div class="alert alert-danger text-center" role="alert">
+                                <h4 class="alert-heading">⛔ Доступ запрещен</h4>
+                                <p>У вас недостаточно прав для просмотра этой страницы.</p>
+                                <hr>
+                                <p class="mb-0">
+                                    <a href="/" class="alert-link">Вернуться на главную</a>
+                                </p>
+                            </div>
+                        </div>
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <div class="container mt-5 text-center">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-3">Проверка прав доступа...</p>
+                    </div>
+                </Authorizing>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>Страница не найдена</PageTitle>
+            <LayoutView Layout="typeof(Components.Layout.MainLayout)">
+                <div class="container mt-5">
+                    <div class="alert alert-warning text-center" role="alert">
+                        <h4 class="alert-heading">🔍 Страница не найдена</h4>
+                        <p>К сожалению, запрашиваемая страница не существует.</p>
+                        <hr>
+                        <p class="mb-0">
+                            <a href="/" class="alert-link">Вернуться на главную</a>
+                        </p>
+                    </div>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    private class RedirectToLogin : ComponentBase
+    {
+        [Inject]
+        private NavigationManager Navigation { get; set; } = default!;
+
+        protected override void OnInitialized()
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+}

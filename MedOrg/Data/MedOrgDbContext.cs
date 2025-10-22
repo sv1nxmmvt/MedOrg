@@ -1,6 +1,5 @@
 ﻿using MedOrg.Models.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Numerics;
 
 namespace MedOrg.Data
 {
@@ -9,6 +8,7 @@ namespace MedOrg.Data
         public MedOrgDbContext(DbContextOptions<MedOrgDbContext> options) : base(options)
         {
         }
+
         public DbSet<Hospital> Hospitals { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
         public DbSet<HospitalBuilding> HospitalBuildings { get; set; }
@@ -33,6 +33,10 @@ namespace MedOrg.Data
         public DbSet<LaboratoryProfile> LaboratoryProfiles { get; set; }
         public DbSet<LaboratoryContract> LaboratoryContracts { get; set; }
         public DbSet<LabExamination> LabExaminations { get; set; }
+
+        public DbSet<User> Users { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -101,6 +105,48 @@ namespace MedOrg.Data
             modelBuilder.Entity<PatientHospitalization>()
                 .Property(ph => ph.Temperature)
                 .HasPrecision(4, 1);
+
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Role)
+                .WithMany(r => r.Users)
+                .HasForeignKey(u => u.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Patient)
+                .WithMany()
+                .HasForeignKey(u => u.PatientId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Doctor)
+                .WithMany()
+                .HasForeignKey(u => u.DoctorId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.User)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<Role>()
+                .HasIndex(r => r.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, Name = RoleNames.Patient, Description = "Пациент - доступ к своим данным" },
+                new Role { Id = 2, Name = RoleNames.MedicalStaff, Description = "Медицинский работник - доступ к запросам и статистике" },
+                new Role { Id = 3, Name = RoleNames.Admin, Description = "Администратор - полный доступ" }
+            );
 
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {

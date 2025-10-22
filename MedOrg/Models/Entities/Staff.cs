@@ -47,6 +47,8 @@ namespace MedOrg.Models.Entities
 
         public int? ExtraVacationDays { get; set; }
 
+        public int YearsOfExperience { get; set; }
+
         public int? SecondaryInstitutionId { get; set; }
         public MedicalInstitution? SecondaryInstitution { get; set; }
 

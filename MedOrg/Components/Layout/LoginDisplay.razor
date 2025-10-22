@@ -1,0 +1,124 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MedOrg.Services
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<AuthorizeView>
+    <Authorized>
+        <div class="user-info">
+            <span class="user-icon">👤</span>
+            <span class="user-name">@context.User.Identity?.Name</span>
+            <span class="user-role badge bg-info">@GetUserRole(context.User)</span>
+            <button class="btn btn-sm btn-outline-danger ms-2" @onclick="HandleLogout">
+                Выход
+            </button>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="auth-buttons">
+            <a href="/login" class="btn btn-sm btn-primary me-2">Войти</a>
+            <a href="/register" class="btn btn-sm btn-outline-primary">Регистрация</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .user-icon {
+        font-size: 1.2rem;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    .user-role {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .auth-buttons {
+        display: flex;
+        align-items: center;
+    }
+
+    .btn-sm {
+        padding: 6px 14px;
+        font-size: 0.875rem;
+        border-radius: 6px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+    .btn-outline-primary {
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+        .btn-outline-primary:hover {
+            background-color: #667eea;
+            color: white;
+        }
+
+    .btn-outline-danger {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+</style>
+
+@code {
+    private string GetUserRole(ClaimsPrincipal user)
+    {
+        var role = user.FindFirst(ClaimTypes.Role)?.Value;
+        return role switch
+        {
+            "Patient" => "Пациент",
+            "MedicalStaff" => "Медработник",
+            "Admin" => "Администратор",
+            _ => "Пользователь"
+        };
+    }
+
+    private async Task HandleLogout()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+        {
+            await AuthService.LogoutAsync(userId);
+        }
+
+        if (AuthStateProvider is CustomAuthenticationStateProvider customProvider)
+        {
+            await customProvider.MarkUserAsLoggedOut();
+        }
+
+        NavigationManager.NavigateTo("/login", true);
+    }
+}

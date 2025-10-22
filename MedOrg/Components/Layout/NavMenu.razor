@@ -1,4 +1,10 @@
-﻿<div class="nav-menu">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MedOrg.Services
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
+
+<div class="nav-menu">
     <div class="nav-header">
         <h3>MedOrg</h3>
     </div>
@@ -10,11 +16,29 @@
             </NavLink>
         </div>
 
+        <AuthorizeView>
+            <NotAuthorized>
+                <div class="nav-section">
+                    <div class="nav-section-title">🔐 Вход в систему</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="login">
+                            <span class="icon">🔑</span> Войти
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="register">
+                            <span class="icon">📝</span> Регистрация
+                        </NavLink>
+                    </div>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
         <div class="nav-section">
-            <div class="nav-section-title">Врачи</div>
+            <div class="nav-section-title">👨‍⚕️ Врачи</div>
             <div class="nav-item">
                 <NavLink class="nav-link" href="doctors/by-specialization">
-                    <span class="icon">👨‍⚕️</span> По профилю
+                    <span class="icon">🩺</span> По специализации
                 </NavLink>
             </div>
             <div class="nav-item">
@@ -34,90 +58,136 @@
             </div>
         </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title">Персонал</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="staff/support">
-                    <span class="icon">👥</span> Обслуживающий
-                </NavLink>
-            </div>
-        </div>
+        <AuthorizeView Roles="Patient,MedicalStaff,Admin">
+            <Authorized>
+                <div class="nav-section">
+                    <div class="nav-section-title">⚕️ Операции</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="operations">
+                            <span class="icon">🏥</span> Список операций
+                        </NavLink>
+                    </div>
+                </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title">Пациенты</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="patients/hospitalized">
-                    <span class="icon">🏥</span> Госпитализированные
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="patients/discharged">
-                    <span class="icon">✅</span> Выписанные
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="patients/clinic">
-                    <span class="icon">🏢</span> Поликлиники
-                </NavLink>
-            </div>
-        </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">📋 Документы</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="documents/sick-leave">
+                            <span class="icon">📄</span> Больничные
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="documents/certificate">
+                            <span class="icon">📜</span> Справки
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="documents/schedule">
+                            <span class="icon">📅</span> Расписание
+                        </NavLink>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
 
-        <div class="nav-section">
-            <div class="nav-section-title">Статистика</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="statistics/wards">
-                    <span class="icon">🛏️</span> Палаты
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="statistics/offices">
-                    <span class="icon">🚪</span> Кабинеты
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="statistics/productivity">
-                    <span class="icon">📊</span> Выработка
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="statistics/workload">
-                    <span class="icon">⚖️</span> Загрузка
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="statistics/laboratory">
-                    <span class="icon">🧪</span> Лаборатории
-                </NavLink>
-            </div>
-        </div>
+        <AuthorizeView Roles="MedicalStaff,Admin">
+            <Authorized>
+                <div class="nav-section">
+                    <div class="nav-section-title">🧑‍🤝‍🧑 Персонал</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="staff/support">
+                            <span class="icon">👥</span> Обслуживающий
+                        </NavLink>
+                    </div>
+                </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title">Операции</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="operations">
-                    <span class="icon">⚕️</span> Список
-                </NavLink>
-            </div>
-        </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">🏥 Пациенты</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="patients/hospitalized">
+                            <span class="icon">🛏️</span> Госпитализированные
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="patients/discharged">
+                            <span class="icon">✅</span> Выписанные
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="patients/clinic">
+                            <span class="icon">🏢</span> Поликлиники
+                        </NavLink>
+                    </div>
+                </div>
 
-        <div class="nav-section">
-            <div class="nav-section-title">Документы</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="documents/sick-leave">
-                    <span class="icon">📄</span> Больничный
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="documents/certificate">
-                    <span class="icon">📋</span> Справка
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="documents/schedule">
-                    <span class="icon">📅</span> Расписание
-                </NavLink>
-            </div>
-        </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">📊 Статистика</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="statistics/wards">
+                            <span class="icon">🛏️</span> Палаты
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="statistics/offices">
+                            <span class="icon">🚪</span> Кабинеты
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="statistics/productivity">
+                            <span class="icon">📈</span> Выработка
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="statistics/workload">
+                            <span class="icon">⚖️</span> Загрузка
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="statistics/laboratory">
+                            <span class="icon">🧪</span> Лаборатории
+                        </NavLink>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-section admin-section">
+                    <div class="nav-section-title">⚙️ Администрирование</div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="manage">
+                            <span class="icon">📊</span> Обзор системы
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="manage/users">
+                            <span class="icon">👥</span> Пользователи
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="manage/doctors">
+                            <span class="icon">👨‍⚕️</span> Управление врачами
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="manage/patients">
+                            <span class="icon">🧑‍🤝‍🧑</span> Управление пациентами
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="manage/hospitals">
+                            <span class="icon">🏥</span> Управление больницами
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="manage/staff">
+                            <span class="icon">👔</span> Управление персоналом
+                        </NavLink>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 </div>
 
@@ -154,6 +224,13 @@
         margin-bottom: 1.5rem;
     }
 
+    .admin-section {
+        background-color: rgba(231, 76, 60, 0.1);
+        border-left: 3px solid #e74c3c;
+        padding-left: 0.5rem;
+        margin-left: 0.5rem;
+    }
+
     .nav-section-title {
         padding: 0.5rem 1rem;
         font-size: 0.75rem;
@@ -161,6 +238,11 @@
         color: #95a5a6;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+
+    .admin-section .nav-section-title {
+        color: #e74c3c;
+        font-weight: 700;
     }
 
     .nav-item {
@@ -188,6 +270,16 @@
             color: white;
         }
 
+    .admin-section .nav-link:hover {
+        background-color: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+    }
+
+    .admin-section .nav-link.active {
+        background-color: #e74c3c;
+        color: white;
+    }
+
     .icon {
         margin-right: 0.6rem;
         font-size: 1rem;
@@ -209,9 +301,27 @@
         .nav-menu::-webkit-scrollbar-thumb:hover {
             background: #4a5f7f;
         }
-
 </style>
 
 @code {
+    protected override void OnInitialized()
+    {
+        if (AuthStateProvider is CustomAuthenticationStateProvider customProvider)
+        {
+            customProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+    }
 
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (AuthStateProvider is CustomAuthenticationStateProvider customProvider)
+        {
+            customProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        }
+    }
 }

@@ -1,0 +1,203 @@
+﻿@page "/manage/patients"
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@using MedOrg.Models.Entities
+@using MedOrg.Services
+@inject PatientService PatientService
+
+<h3>Управление пациентами</h3>
+
+<div class="mb-3">
+    <button class="btn btn-success" @onclick="ShowAddModal">
+        <i class="bi bi-plus-circle"></i> Добавить пациента
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (patients != null && patients.Data != null)
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ФИО</th>
+                    <th>Дата рождения</th>
+                    <th>Адрес</th>
+                    <th>Телефон</th>
+                    <th>Страховой полис</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var patient in patients.Data)
+                {
+                    <tr>
+                        <td>@patient.Id</td>
+                        <td>@($"{patient.LastName} {patient.FirstName} {patient.MiddleName}")</td>
+                        <td>@patient.BirthDate.ToShortDateString()</td>
+                        <td>@patient.Address</td>
+                        <td>@(patient.Phone ?? "-")</td>
+                        <td>@patient.InsuranceNumber</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" @onclick="() => ShowEditModal(patient.Id)">
+                                Изменить
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirm(patient.Id)">
+                                Удалить
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (showFormModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEdit ? "Редактирование пациента" : "Добавление пациента")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseFormModal"></button>
+                </div>
+                <div class="modal-body">
+                    <PatientForm Model="@currentPatient" IsEdit="@isEdit"
+                                 OnSubmit="@HandleFormSubmit" OnCancel="@CloseFormModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ConfirmDeleteModal IsVisible="@showDeleteConfirm"
+                    Message="@($"Вы уверены, что хотите удалить пациента?")"
+                    OnConfirm="@HandleDelete"
+                    OnClose="@(() => showDeleteConfirm = false)" />
+
+<MessageModal IsVisible="@showMessageModal"
+              Title="@messageTitle"
+              Message="@messageText"
+              Type="@messageType"
+              OnClose="@CloseMessageModal" />
+
+@code {
+    private QueryResult<List<Patient>>? patients;
+    private Patient currentPatient = new();
+    private int selectedPatientId;
+    private bool isLoading = false;
+    private bool showFormModal = false;
+    private bool showDeleteConfirm = false;
+    private bool showMessageModal = false;
+    private bool isEdit = false;
+    private string messageTitle = "";
+    private string messageText = "";
+    private MessageModal.MessageType messageType = MessageModal.MessageType.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPatients();
+    }
+
+    private async Task LoadPatients()
+    {
+        isLoading = true;
+        patients = await PatientService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void ShowAddModal()
+    {
+        currentPatient = new Patient
+        {
+            BirthDate = DateTime.UtcNow.AddYears(-30)
+        };
+        isEdit = false;
+        showFormModal = true;
+    }
+
+    private async Task ShowEditModal(int id)
+    {
+        var result = await PatientService.GetByIdAsync(id);
+        if (result.Success && result.Data != null)
+        {
+            currentPatient = result.Data;
+            isEdit = true;
+            showFormModal = true;
+        }
+    }
+
+    private void ShowDeleteConfirm(int id)
+    {
+        selectedPatientId = id;
+        showDeleteConfirm = true;
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        QueryResult<Patient> result;
+
+        if (isEdit)
+        {
+            result = await PatientService.UpdateAsync(currentPatient);
+        }
+        else
+        {
+            result = await PatientService.CreateAsync(currentPatient);
+        }
+
+        if (result.Success)
+        {
+            messageTitle = "Успех";
+            messageText = result.Message ?? "Операция выполнена успешно";
+            messageType = MessageModal.MessageType.Success;
+            showFormModal = false;
+            await LoadPatients();
+        }
+        else
+        {
+            messageTitle = "Ошибка";
+            messageText = result.Message ?? "Произошла ошибка";
+            messageType = MessageModal.MessageType.Error;
+        }
+
+        showMessageModal = true;
+    }
+
+    private async Task HandleDelete()
+    {
+        var result = await PatientService.DeleteAsync(selectedPatientId);
+        showDeleteConfirm = false;
+
+        if (result.Success)
+        {
+            messageTitle = "Успех";
+            messageText = result.Message ?? "Пациент успешно удален";
+            messageType = MessageModal.MessageType.Success;
+            await LoadPatients();
+        }
+        else
+        {
+            messageTitle = "Ошибка";
+            messageText = result.Message ?? "Произошла ошибка";
+            messageType = MessageModal.MessageType.Error;
+        }
+
+        showMessageModal = true;
+    }
+
+    private void CloseFormModal()
+    {
+        showFormModal = false;
+    }
+
+    private void CloseMessageModal()
+    {
+        showMessageModal = false;
+    }
+}

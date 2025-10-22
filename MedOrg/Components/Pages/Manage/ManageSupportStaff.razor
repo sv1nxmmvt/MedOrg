@@ -1,0 +1,196 @@
+﻿@page "/manage/staff"
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@using MedOrg.Models.Entities
+@using MedOrg.Services
+@inject SupportStaffService StaffService
+
+<h3>Управление обслуживающим персоналом</h3>
+
+<div class="mb-3">
+    <button class="btn btn-success" @onclick="ShowAddModal">
+        <i class="bi bi-plus-circle"></i> Добавить сотрудника
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="loading">Загрузка...</div>
+}
+else if (staff != null && staff.Data != null)
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ФИО</th>
+                    <th>Должность</th>
+                    <th>Учреждение</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var employee in staff.Data)
+                {
+                    <tr>
+                        <td>@employee.Id</td>
+                        <td>@($"{employee.LastName} {employee.FirstName} {employee.MiddleName}")</td>
+                        <td>@employee.Position</td>
+                        <td>@(employee.Institution?.Name ?? "Не указано")</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" @onclick="() => ShowEditModal(employee.Id)">
+                                Изменить
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirm(employee.Id)">
+                                Удалить
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (showFormModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEdit ? "Редактирование сотрудника" : "Добавление сотрудника")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseFormModal"></button>
+                </div>
+                <div class="modal-body">
+                    <SupportStaffForm Model="@currentStaff" IsEdit="@isEdit"
+                                      OnSubmit="@HandleFormSubmit" OnCancel="@CloseFormModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ConfirmDeleteModal IsVisible="@showDeleteConfirm"
+                    Message="@($"Вы уверены, что хотите удалить сотрудника?")"
+                    OnConfirm="@HandleDelete"
+                    OnClose="@(() => showDeleteConfirm = false)" />
+
+<MessageModal IsVisible="@showMessageModal"
+              Title="@messageTitle"
+              Message="@messageText"
+              Type="@messageType"
+              OnClose="@CloseMessageModal" />
+
+@code {
+    private QueryResult<List<SupportStaff>>? staff;
+    private SupportStaff currentStaff = new();
+    private int selectedStaffId;
+    private bool isLoading = false;
+    private bool showFormModal = false;
+    private bool showDeleteConfirm = false;
+    private bool showMessageModal = false;
+    private bool isEdit = false;
+    private string messageTitle = "";
+    private string messageText = "";
+    private MessageModal.MessageType messageType = MessageModal.MessageType.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStaff();
+    }
+
+    private async Task LoadStaff()
+    {
+        isLoading = true;
+        staff = await StaffService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void ShowAddModal()
+    {
+        currentStaff = new SupportStaff();
+        isEdit = false;
+        showFormModal = true;
+    }
+
+    private async Task ShowEditModal(int id)
+    {
+        var result = await StaffService.GetByIdAsync(id);
+        if (result.Success && result.Data != null)
+        {
+            currentStaff = result.Data;
+            isEdit = true;
+            showFormModal = true;
+        }
+    }
+
+    private void ShowDeleteConfirm(int id)
+    {
+        selectedStaffId = id;
+        showDeleteConfirm = true;
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        QueryResult<SupportStaff> result;
+
+        if (isEdit)
+        {
+            result = await StaffService.UpdateAsync(currentStaff);
+        }
+        else
+        {
+            result = await StaffService.CreateAsync(currentStaff);
+        }
+
+        if (result.Success)
+        {
+            messageTitle = "Успех";
+            messageText = result.Message ?? "Операция выполнена успешно";
+            messageType = MessageModal.MessageType.Success;
+            showFormModal = false;
+            await LoadStaff();
+        }
+        else
+        {
+            messageTitle = "Ошибка";
+            messageText = result.Message ?? "Произошла ошибка";
+            messageType = MessageModal.MessageType.Error;
+        }
+
+        showMessageModal = true;
+    }
+
+    private async Task HandleDelete()
+    {
+        var result = await StaffService.DeleteAsync(selectedStaffId);
+        showDeleteConfirm = false;
+
+        if (result.Success)
+        {
+            messageTitle = "Успех";
+            messageText = result.Message ?? "Сотрудник успешно удален";
+            messageType = MessageModal.MessageType.Success;
+            await LoadStaff();
+        }
+        else
+        {
+            messageTitle = "Ошибка";
+            messageText = result.Message ?? "Произошла ошибка";
+            messageType = MessageModal.MessageType.Error;
+        }
+
+        showMessageModal = true;
+    }
+
+    private void CloseFormModal()
+    {
+        showFormModal = false;
+    }
+
+    private void CloseMessageModal()
+    {
+        showMessageModal = false;
+    }
+}
