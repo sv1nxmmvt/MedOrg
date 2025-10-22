@@ -2,7 +2,6 @@ using MedOrg.Components;
 using MedOrg.Configuration;
 using MedOrg.Data;
 using MedOrg.Services;
-using MedOrg.API;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -11,9 +10,58 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Blazor Components
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Controllers + API Explorer для Swagger
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "MedOrg API",
+        Version = "v1",
+        Description = "API для управления медицинской организацией"
+    });
+
+    // Настройка JWT авторизации в Swagger
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Введите JWT токен в формате: Bearer {token}"
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // Включение XML комментариев (опционально)
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+});
+
+// JWT Settings
 builder.Services.Configure<JwtSettings>(options =>
 {
     options.SecretKey = builder.Configuration["Jwt:SecretKey"]
@@ -29,6 +77,7 @@ builder.Services.Configure<JwtSettings>(options =>
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? "MedOrgSecretKey_2024_VerySecure_MinimumLength32Characters!@#$";
 
+// Authentication & Authorization
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -66,37 +115,60 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 
+// Database
 builder.Services.AddDbContext<MedOrgDbContext>(options =>
 {
     var configService = new DatabaseConfigService(builder.Configuration);
     options.UseNpgsql(configService.GetConnectionString());
 });
 
+// Services
 builder.Services.AddScoped<DatabaseConfigService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<QueryService>();
 builder.Services.AddScoped<DocumentService>();
-
 builder.Services.AddScoped<DoctorService>();
 builder.Services.AddScoped<PatientService>();
 builder.Services.AddScoped<HospitalService>();
+builder.Services.AddScoped<ClinicService>();
 builder.Services.AddScoped<SupportStaffService>();
-
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthenticationStateProvider>());
 
+// CORS (если нужно для внешних клиентов)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
+// Database Initialization
 using (var scope = app.Services.CreateScope())
 {
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
     await initializer.InitializeAsync();
 }
 
-if (!app.Environment.IsDevelopment())
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MedOrg API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
+else
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
@@ -105,13 +177,17 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseAntiforgery();
 
-app.MapMedicalEndpoints();
+// Map Controllers
+app.MapControllers();
 
+// Map Blazor Components
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -66,31 +66,4 @@ namespace MedOrg.Models.Entities
         [MaxLength(100)]
         public string Position { get; set; } = string.Empty;
     }
-
-    public class ConsultingContract
-    {
-        [Key]
-        public int Id { get; set; }
-
-        public int DoctorId { get; set; }
-        public Doctor Doctor { get; set; } = null!;
-
-        public int InstitutionId { get; set; }
-        public MedicalInstitution Institution { get; set; } = null!;
-
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-    }
-
-    public enum AcademicDegree
-    {
-        Candidate = 1,
-        Doctor = 2
-    }
-
-    public enum AcademicTitle
-    {
-        Docent = 1,
-        Professor = 2
-    }
 }
