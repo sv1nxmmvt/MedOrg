@@ -1,8 +1,11 @@
 ﻿@page "/manage/staff"
+@using MedOrg.Data.Models.DTOs
+@using MedOrg.Data.Models.Entities.MedStaff
+@using MedOrg.Models.Entities.MedStaff
+@using MedOrg.Services
+@using MedOrg.Services.Ex
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
-@using MedOrg.Models.Entities
-@using MedOrg.Services
 @inject SupportStaffService StaffService
 
 <h3>Управление обслуживающим персоналом</h3>

@@ -1,5 +1,9 @@
-﻿using MedOrg.Models.Entities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using MedOrg.Data.Models.Entities.Auth;
+using MedOrg.Data.Models.Entities.Institutions;
+using MedOrg.Data.Models.Entities.MedStaff;
+using MedOrg.Data.Models.Entities.Operations;
+using MedOrg.Data.Models.Entities.Patients;
 
 namespace MedOrg.Data
 {

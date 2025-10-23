@@ -1,9 +1,12 @@
 ﻿@page "/doctors/by-degree"
-@using Microsoft.AspNetCore.Authorization
-@rendermode InteractiveServer
-@using MedOrg.Models.DTOs
-@using MedOrg.Models.Entities
+@using MedOrg.Data.Models.DTOs
+@using MedOrg.Data.Models.DTOs.MedStaff
+@using MedOrg.Data.Models.Entities.MedStaff
+@using MedOrg.Models.DTOs.Doctors
+@using MedOrg.Models.Entities.MedStaff
 @using MedOrg.Services
+@using Microsoft.AspNetCore.Authorization
+erver
 @inject QueryService QueryService
 
 <h3>Врачи по степени и званию</h3>

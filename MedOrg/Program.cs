@@ -1,20 +1,52 @@
-using MedOrg.Components;
+﻿using MedOrg.Components;
 using MedOrg.Configuration;
 using MedOrg.Data;
 using MedOrg.Services;
-using Microsoft.EntityFrameworkCore;
+using MedOrg.Services.Auth;
+using MedOrg.Services.Db;
+using MedOrg.Services.Ex;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Blazor Components
+// ═══════════════════════════════════════════════════════════════════
+// ИНТЕРАКТИВНАЯ КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ
+// ═══════════════════════════════════════════════════════════════════
+Console.WriteLine();
+Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
+Console.WriteLine("║            MedOrg - Медицинская организация               ║");
+Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
+Console.WriteLine();
+
+var dbConfig = await DatabaseConnectionConfigurator.EnsureConfigurationAsync();
+
+// Тестируем подключение
+if (!await DatabaseConnectionConfigurator.TestConnectionAsync(dbConfig))
+{
+    Console.WriteLine();
+    Console.WriteLine("✗ Не удалось подключиться к базе данных.");
+    Console.WriteLine("  Проверьте параметры подключения и повторите попытку.");
+    Console.WriteLine();
+    Console.WriteLine("  Для сброса конфигурации удалите файл: dbconfig.json");
+    Console.WriteLine();
+    return;
+}
+
+Console.WriteLine();
+Console.WriteLine("─────────────────────────────────────────────────────────────");
+Console.WriteLine("Запуск приложения...");
+Console.WriteLine();
+
+// ═══════════════════════════════════════════════════════════════════
+// РЕГИСТРАЦИЯ СЕРВИСОВ
+// ═══════════════════════════════════════════════════════════════════
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Controllers + API Explorer ��� Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -23,10 +55,9 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "MedOrg API",
         Version = "v1",
-        Description = "API ��� ���������� ����������� ������������"
+        Description = "API для управления медицинской организацией"
     });
 
-    // ��������� JWT ����������� � Swagger
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -34,7 +65,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "������� JWT ����� � �������: Bearer {token}"
+        Description = "Введите JWT токен в формате: Bearer {token}"
     });
 
     options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
@@ -52,7 +83,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
-    // ��������� XML ������������ (�����������)
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -61,7 +91,7 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
-// JWT Settings
+// JWT конфигурация
 builder.Services.Configure<JwtSettings>(options =>
 {
     options.SecretKey = builder.Configuration["Jwt:SecretKey"]
@@ -77,7 +107,6 @@ builder.Services.Configure<JwtSettings>(options =>
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? "MedOrgSecretKey_2024_VerySecure_MinimumLength32Characters!@#$";
 
-// Authentication & Authorization
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -115,14 +144,14 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 
-// Database
+// Регистрация DbContext с использованием интерактивной конфигурации
+var connectionString = DatabaseConnectionConfigurator.GetConnectionString(dbConfig);
 builder.Services.AddDbContext<MedOrgDbContext>(options =>
 {
-    var configService = new DatabaseConfigService(builder.Configuration);
-    options.UseNpgsql(configService.GetConnectionString());
+    options.UseNpgsql(connectionString);
 });
 
-// Services
+// Регистрация сервисов
 builder.Services.AddScoped<DatabaseConfigService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<QueryService>();
@@ -138,7 +167,6 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthenticationStateProvider>());
 
-// CORS (���� ����� ��� ������� ��������)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -151,14 +179,27 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Database Initialization
+// ═══════════════════════════════════════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
+// ═══════════════════════════════════════════════════════════════════
 using (var scope = app.Services.CreateScope())
 {
-    var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
-    await initializer.InitializeAsync();
+    try
+    {
+        var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+        await initializer.InitializeAsync();
+        Console.WriteLine("✓ База данных инициализирована успешно");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"✗ Ошибка инициализации базы данных: {ex.Message}");
+        return;
+    }
 }
 
-// Configure the HTTP request pipeline
+// ═══════════════════════════════════════════════════════════════════
+// КОНФИГУРАЦИЯ MIDDLEWARE
+// ═══════════════════════════════════════════════════════════════════
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -184,11 +225,15 @@ app.UseAuthorization();
 
 app.UseAntiforgery();
 
-// Map Controllers
 app.MapControllers();
 
-// Map Blazor Components
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+Console.WriteLine();
+Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
+Console.WriteLine("║              Приложение успешно запущено!                 ║");
+Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
+Console.WriteLine();
 
 app.Run();

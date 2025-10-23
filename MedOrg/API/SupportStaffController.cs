@@ -1,6 +1,6 @@
-﻿using MedOrg.Models.DTOs;
-using MedOrg.Models.Entities;
-using MedOrg.Services;
+﻿using MedOrg.Data.Models.DTOs;
+using MedOrg.Data.Models.Entities.MedStaff;
+using MedOrg.Services.Ex;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
