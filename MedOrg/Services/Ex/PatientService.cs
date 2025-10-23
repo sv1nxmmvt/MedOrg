@@ -1,7 +1,7 @@
 ﻿using MedOrg.Data;
 using Microsoft.EntityFrameworkCore;
-using MedOrg.Data.Models.DTOs;
-using MedOrg.Data.Models.Entities.Patients;
+using MedOrg.Data.DTOs;
+using MedOrg.Data.Entities.Patients;
 
 namespace MedOrg.Services.Ex
 {

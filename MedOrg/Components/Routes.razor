@@ -8,7 +8,7 @@
                 <NotAuthorized Context="authContext">
                     @if (authContext.User.Identity?.IsAuthenticated != true)
                     {
-                        <RedirectToLogin />
+                        <MedOrg.Components.Pages.Auth.Login />
                     }
                     else
                     {

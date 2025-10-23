@@ -31,17 +31,17 @@ namespace MedOrg.Services.Db
                 try
                 {
                     var json = await File.ReadAllTextAsync(configPath);
-                    var config = JsonSerializer.Deserialize<DatabaseConfig>(json);
+                    var existingConfig = JsonSerializer.Deserialize<DatabaseConfig>(json);
 
-                    if (config != null && !string.IsNullOrEmpty(config.Password))
+                    if (existingConfig != null && !string.IsNullOrEmpty(existingConfig.Password))
                     {
                         Console.WriteLine("✓ Найдена существующая конфигурация базы данных");
-                        return config;
+                        return existingConfig;
                     }
                 }
                 catch
                 {
-                    // Если файл поврежден, продолжаем создание новой конфигурации
+                    
                 }
             }
 
@@ -50,10 +50,9 @@ namespace MedOrg.Services.Db
             Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
             Console.WriteLine();
 
-            var config = await ConfigureInteractivelyAsync();
+            var config = ConfigureInteractively();
 
-            // Сохраняем конфигурацию
-            await SaveConfigurationAsync(config, configPath);
+            SaveConfiguration(config, configPath);
 
             Console.WriteLine();
             Console.WriteLine("✓ Конфигурация сохранена в файл: " + ConfigFileName);
@@ -65,7 +64,7 @@ namespace MedOrg.Services.Db
         /// <summary>
         /// Интерактивная настройка параметров подключения
         /// </summary>
-        private static async Task<DatabaseConfig> ConfigureInteractivelyAsync()
+        private static DatabaseConfig ConfigureInteractively()
         {
             var config = new DatabaseConfig();
 
@@ -115,12 +114,11 @@ namespace MedOrg.Services.Db
                     if (password.Length > 0)
                     {
                         password.Remove(password.Length - 1, 1);
-                        Console.Write("\b \b"); // Стираем символ с экрана
+                        Console.Write("\b \b");
                     }
                 }
                 else if (key.Key == ConsoleKey.Escape)
                 {
-                    // Очистка всего введенного
                     while (password.Length > 0)
                     {
                         password.Remove(password.Length - 1, 1);
@@ -130,7 +128,7 @@ namespace MedOrg.Services.Db
                 else if (!char.IsControl(key.KeyChar))
                 {
                     password.Append(key.KeyChar);
-                    Console.Write("*"); // Показываем звездочку вместо символа
+                    Console.Write("*");
                 }
             }
 
@@ -140,7 +138,7 @@ namespace MedOrg.Services.Db
         /// <summary>
         /// Сохранение конфигурации в файл
         /// </summary>
-        private static async Task SaveConfigurationAsync(DatabaseConfig config, string path)
+        private static void SaveConfiguration(DatabaseConfig config, string path)
         {
             var options = new JsonSerializerOptions
             {
@@ -148,7 +146,7 @@ namespace MedOrg.Services.Db
             };
 
             var json = JsonSerializer.Serialize(config, options);
-            await File.WriteAllTextAsync(path, json);
+            File.WriteAllText(path, json);
         }
 
         /// <summary>

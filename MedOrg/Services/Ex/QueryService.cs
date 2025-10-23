@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MedOrg.Data;
-using MedOrg.Data.Models.DTOs;
-using MedOrg.Data.Models.DTOs.Institutions;
-using MedOrg.Data.Models.DTOs.MedStaff;
-using MedOrg.Data.Models.DTOs.Operations;
-using MedOrg.Data.Models.DTOs.Patients;
-using MedOrg.Data.Models.Entities.Institutions;
-using MedOrg.Data.Models.Entities.MedStaff;
+using MedOrg.Data.DTOs;
+using MedOrg.Data.DTOs.Institutions;
+using MedOrg.Data.DTOs.MedStaff;
+using MedOrg.Data.DTOs.Operations;
+using MedOrg.Data.DTOs.Patients;
+using MedOrg.Data.Entities.Institutions;
+using MedOrg.Data.Entities.MedStaff;
 
 namespace MedOrg.Services
 {

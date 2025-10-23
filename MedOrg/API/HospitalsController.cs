@@ -1,5 +1,5 @@
-﻿using MedOrg.Data.Models.DTOs;
-using MedOrg.Data.Models.Entities.Institutions;
+﻿using MedOrg.Data.DTOs;
+using MedOrg.Data.Entities.Institutions;
 using MedOrg.Services.Ex;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

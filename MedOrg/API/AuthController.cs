@@ -1,5 +1,5 @@
-﻿using MedOrg.Data.Models.DTOs;
-using MedOrg.Data.Models.DTOs.Auth;
+﻿using MedOrg.Data.DTOs;
+using MedOrg.Data.DTOs.Auth;
 using MedOrg.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -13,9 +13,6 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ═══════════════════════════════════════════════════════════════════
-// ИНТЕРАКТИВНАЯ КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ
-// ═══════════════════════════════════════════════════════════════════
 Console.WriteLine();
 Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
 Console.WriteLine("║            MedOrg - Медицинская организация               ║");
@@ -24,7 +21,6 @@ Console.WriteLine();
 
 var dbConfig = await DatabaseConnectionConfigurator.EnsureConfigurationAsync();
 
-// Тестируем подключение
 if (!await DatabaseConnectionConfigurator.TestConnectionAsync(dbConfig))
 {
     Console.WriteLine();
@@ -41,9 +37,6 @@ Console.WriteLine("────────────────────�
 Console.WriteLine("Запуск приложения...");
 Console.WriteLine();
 
-// ═══════════════════════════════════════════════════════════════════
-// РЕГИСТРАЦИЯ СЕРВИСОВ
-// ═══════════════════════════════════════════════════════════════════
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -91,7 +84,6 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
-// JWT конфигурация
 builder.Services.Configure<JwtSettings>(options =>
 {
     options.SecretKey = builder.Configuration["Jwt:SecretKey"]
@@ -144,14 +136,12 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 
-// Регистрация DbContext с использованием интерактивной конфигурации
 var connectionString = DatabaseConnectionConfigurator.GetConnectionString(dbConfig);
 builder.Services.AddDbContext<MedOrgDbContext>(options =>
 {
     options.UseNpgsql(connectionString);
 });
 
-// Регистрация сервисов
 builder.Services.AddScoped<DatabaseConfigService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<QueryService>();
@@ -179,9 +169,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ═══════════════════════════════════════════════════════════════════
-// ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
-// ═══════════════════════════════════════════════════════════════════
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -197,9 +184,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// КОНФИГУРАЦИЯ MIDDLEWARE
-// ═══════════════════════════════════════════════════════════════════
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -21,7 +21,6 @@ namespace MedOrg.Services.Db
         /// </summary>
         public async Task<string> GetConnectionStringAsync()
         {
-            // Проверяем, есть ли конфигурация в appsettings
             var configFromSettings = TryGetConfigFromAppSettings();
 
             if (configFromSettings != null && !string.IsNullOrEmpty(configFromSettings.Password))
@@ -30,7 +29,6 @@ namespace MedOrg.Services.Db
                 return DatabaseConnectionConfigurator.GetConnectionString(configFromSettings);
             }
 
-            // Если в appsettings нет полной конфигурации, используем интерактивный режим
             _cachedConfig = await DatabaseConnectionConfigurator.EnsureConfigurationAsync();
             return DatabaseConnectionConfigurator.GetConnectionString(_cachedConfig);
         }
@@ -73,7 +71,6 @@ namespace MedOrg.Services.Db
             var username = _configuration["Database:Username"];
             var password = _configuration["Database:Password"];
 
-            // Если все параметры заполнены в конфиге, используем их
             if (!string.IsNullOrEmpty(host) &&
                 !string.IsNullOrEmpty(port) &&
                 !string.IsNullOrEmpty(database) &&

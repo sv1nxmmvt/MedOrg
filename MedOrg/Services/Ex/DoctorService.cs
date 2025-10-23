@@ -1,8 +1,8 @@
 ﻿using MedOrg.Data;
 using Microsoft.EntityFrameworkCore;
-using MedOrg.Data.Models.DTOs;
-using MedOrg.Data.Models.DTOs.MedStaff;
-using MedOrg.Data.Models.Entities.MedStaff;
+using MedOrg.Data.DTOs;
+using MedOrg.Data.DTOs.MedStaff;
+using MedOrg.Data.Entities.MedStaff;
 
 namespace MedOrg.Services.Ex
 {

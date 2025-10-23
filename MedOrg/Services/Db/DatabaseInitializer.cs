@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MedOrg.Data;
-using MedOrg.Data.Models.Entities.Auth;
-using MedOrg.Data.Models.Entities.Institutions;
-using MedOrg.Data.Models.Entities.MedStaff;
-using MedOrg.Data.Models.Entities.Operations;
-using MedOrg.Data.Models.Entities.Patients;
+using MedOrg.Data.Entities.Auth;
+using MedOrg.Data.Entities.Institutions;
+using MedOrg.Data.Entities.MedStaff;
+using MedOrg.Data.Entities.Operations;
+using MedOrg.Data.Entities.Patients;
 
 namespace MedOrg.Services.Db
 {

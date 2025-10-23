@@ -1,9 +1,8 @@
 ﻿using MedOrg.Configuration;
 using MedOrg.Data;
-using MedOrg.Data.Models.DTOs;
-using MedOrg.Data.Models.DTOs.Auth;
-using MedOrg.Data.Models.Entities.Auth;
-using MedOrg.Models.Entities;
+using MedOrg.Data.DTOs;
+using MedOrg.Data.DTOs.Auth;
+using MedOrg.Data.Entities.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
